@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mes Tâches">
+<title>Mes Tâches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #F7F5F0; --surface: #FFFFFF; --surface2: #F0EDE8;
+    --text: #1A1916; --text2: #6B6860; --text3: #B0ADA8;
+    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.14);
+    --accent: #1A1916;
+    --high: #C0392B; --high-bg: #FEF0EF;
+    --med: #C07A00; --med-bg: #FEF8EC;
+    --low: #1E7E5A; --low-bg: #EBF7F2;
+    --radius: 14px; --radius-sm: 8px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+    --done-color: #1E7E5A; --todo-color: #B0ADA8;
+    --copy-color: #185FA5; --copy-bg: #E6F1FB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141312; --surface: #1E1D1B; --surface2: #2A2927;
+      --text: #F0EDE8; --text2: #9A9790; --text3: #5A5855;
+      --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+      --accent: #F0EDE8;
+      --high: #FF6B6B; --high-bg: #2A1A1A;
+      --med: #FFB84D; --med-bg: #2A2010;
+      --low: #4DD6A0; --low-bg: #0E2A1E;
+      --shadow: 0 2px 12px rgba(0,0,0,0.3);
+      --done-color: #4DD6A0; --todo-color: #5A5855;
+      --copy-color: #85B7EB; --copy-bg: #042C53;
+    }
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; }
+  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; }
+
+  .header { padding: 48px 20px 0; background: var(--bg); }
+  .header-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+  .app-title { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; }
+  .date-str { font-size: 12px; color: var(--text3); }
+  .stats-row { display: flex; gap: 8px; margin: 12px 0 0; }
+  .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 500; color: var(--text2); }
+  .stat-pill b { color: var(--text); font-weight: 600; }
+
+  .tabs { display: flex; padding: 14px 20px 0; border-bottom: 1px solid var(--border); background: var(--bg); }
+  .tab { flex: 1; text-align: center; padding: 9px 0; font-size: 12px; font-weight: 500; color: var(--text3); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .2s, border-color .2s; }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  .scroll { flex: 1; overflow-y: auto; padding: 16px 20px 100px; -webkit-overflow-scrolling: touch; }
+
+  /* Add box */
+  .add-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 20px; box-shadow: var(--shadow); }
+  .add-input { width: 100%; border: none; background: none; font-size: 15px; font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; }
+  .add-input::placeholder { color: var(--text3); }
+  .add-controls { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+  .prio-select, .day-select { flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; padding: 7px 10px; outline: none; }
+  .add-btn { background: var(--accent); color: var(--bg); border: none; border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; transition: opacity .15s; }
+  .add-btn:active { opacity: .7; }
+
+  /* Task card */
+  .day-section { margin-bottom: 20px; }
+  .day-header { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+  .task-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; box-shadow: var(--shadow); transition: opacity .2s; }
+  .task-card.done-card { opacity: .55; }
+  .task-row { display: flex; align-items: center; gap: 10px; padding: 13px 14px; }
+  .check-btn { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border2); background: none; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+  .check-btn.done { background: var(--low); border-color: var(--low); }
+  .check-icon { display: none; font-size: 11px; color: white; }
+  .check-btn.done .check-icon { display: block; }
+  .task-content { flex: 1; min-width: 0; }
+  .task-name { font-size: 14px; color: var(--text); line-height: 1.4; }
+  .task-name.done { text-decoration: line-through; color: var(--text3); }
+  .task-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+  .prio-tag { font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 20px; }
+  .prio-high { color: var(--high); background: var(--high-bg); }
+  .prio-medium { color: var(--med); background: var(--med-bg); }
+  .prio-low { color: var(--low); background: var(--low-bg); }
+  .sub-count { font-size: 10px; color: var(--text3); }
+  .task-actions { display: flex; gap: 2px; }
+  .icon-btn { width: 30px; height: 30px; border: none; background: none; cursor: pointer; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--text3); font-size: 16px; transition: background .15s; }
+  .icon-btn:active { background: var(--surface2); }
+
+  /* Subtasks */
+  .subtask-area { padding: 8px 14px 12px 46px; border-top: 1px solid var(--border); }
+  .subtask-area.hidden { display: none; }
+  .sub-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .sub-check { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--border2); background: none; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .sub-check.done { background: var(--low); border-color: var(--low); }
+  .sub-check-icon { display: none; font-size: 9px; color: white; }
+  .sub-check.done .sub-check-icon { display: block; }
+  .sub-name { flex: 1; font-size: 13px; color: var(--text2); }
+  .sub-name.done { text-decoration: line-through; color: var(--text3); }
+  .sub-del { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 15px; padding: 2px 4px; }
+  .add-sub { display: flex; gap: 6px; margin-top: 6px; }
+  .sub-input { flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; padding: 6px 10px; outline: none; }
+  .sub-input::placeholder { color: var(--text3); }
+  .sub-add-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text2); font-size: 18px; padding: 0 10px; cursor: pointer; }
+
+  .empty { text-align: center; padding: 40px 0; color: var(--text3); font-size: 14px; }
+  .empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+  /* ── STATS ── */
+  .big-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .big-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
+  .big-card-val { font-size: 28px; font-weight: 600; letter-spacing: -1px; color: var(--text); }
+  .big-card-val.green { color: var(--done-color); }
+  .big-card-label { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 14px; }
+  .chart-title { font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 14px; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+  .bar-wrap { flex: 1; width: 100%; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; }
+  .bar-done { background: var(--done-color); border-radius: 4px 4px 0 0; }
+  .bar-todo { background: var(--todo-color); opacity: .35; }
+  .bar-pct { font-size: 10px; font-weight: 600; color: var(--text2); }
+  .bar-lbl { font-size: 9px; color: var(--text3); text-align: center; }
+  .hbar-row { margin-bottom: 11px; }
+  .hbar-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+  .hbar-track { height: 7px; background: var(--surface2); border-radius: 20px; overflow: hidden; }
+  .hbar-fill { height: 100%; border-radius: 20px; transition: width .4s; }
+  .donut-wrap { display: flex; align-items: center; gap: 20px; }
+  .donut-legend { flex: 1; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); margin-bottom: 8px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── PLANNING ── */
+  .plan-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .plan-toolbar-title { flex: 1; font-size: 13px; font-weight: 500; color: var(--text2); }
+  .copy-hint { font-size: 11px; color: var(--copy-color); background: var(--copy-bg); border-radius: 20px; padding: 4px 10px; }
+
+  .plan-grid { display: flex; flex-direction: column; gap: 10px; }
+  .plan-day-col { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .plan-day-col.drag-over { border-color: var(--copy-color); border-width: 2px; background: var(--copy-bg); }
+  .plan-day-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .plan-day-name { font-size: 12px; font-weight: 600; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; flex: 1; }
+  .plan-day-count { font-size: 11px; color: var(--text3); }
+  .plan-day-pct { font-size: 11px; font-weight: 600; color: var(--done-color); }
+  .plan-day-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .plan-day-body.collapsed { display: none; }
+
+  .plan-task { display: flex; align-items: center; gap: 8px; background: var(--surface2); border-radius: var(--radius-sm); padding: 8px 10px; cursor: grab; transition: opacity .2s, transform .15s; user-select: none; -webkit-user-select: none; }
+  .plan-task:active { cursor: grabbing; opacity: .7; transform: scale(.98); }
+  .plan-task.dragging { opacity: .3; }
+  .plan-task-name { flex: 1; font-size: 13px; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .plan-task-name.done { text-decoration: line-through; color: var(--text3); }
+  .plan-task-prio { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .plan-task-actions { display: flex; gap: 2px; flex-shrink: 0; }
+  .plan-icon-btn { width: 26px; height: 26px; border: none; background: none; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--text3); font-size: 14px; }
+  .plan-icon-btn:active { background: var(--border); }
+  .plan-icon-btn.copy-btn { color: var(--copy-color); }
+
+  /* Copy menu */
+  .copy-menu { position: fixed; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,.18); padding: 8px; z-index: 100; min-width: 160px; }
+  .copy-menu-title { font-size: 11px; color: var(--text3); padding: 4px 8px 6px; font-weight: 500; }
+  .copy-menu-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text); transition: background .12s; }
+  .copy-menu-item:active { background: var(--surface2); }
+  .copy-menu-item.move { color: var(--high); }
+  .copy-menu-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
+  .plan-drop-zone { border: 2px dashed var(--border2); border-radius: var(--radius-sm); padding: 10px; text-align: center; font-size: 12px; color: var(--text3); cursor: default; }
+  .plan-drop-zone.active { border-color: var(--copy-color); color: var(--copy-color); background: var(--copy-bg); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-top">
+      <div class="app-title">Mes tâches</div>
+      <div class="date-str" id="date-str"></div>
+    </div>
+    <div class="stats-row" id="stats-row"></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" id="tab-day" onclick="switchTab('day')">Aujourd'hui</button>
+    <button class="tab" id="tab-week" onclick="switchTab('week')">Semaine</button>
+    <button class="tab" id="tab-plan" onclick="switchTab('plan')">Planning</button>
+    <button class="tab" id="tab-stats" onclick="switchTab('stats')">Stats</button>
+  </div>
+  <div class="scroll" id="scroll-area"></div>
+</div>
+
+<div id="copy-menu" class="copy-menu" style="display:none"></div>
+<div id="overlay" style="position:fixed;inset:0;z-index:99;display:none" onclick="closeCopyMenu()"></div>
+
+<script>
+const DAYS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+const DAYS_FULL = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+let tab = 'day';
+let data = { day: [], week: [] };
+let nextId = 1;
+let collapsedDays = {};
+let dragTaskId = null, dragFromDay = null;
+
+function save() { try { localStorage.setItem('mes_taches', JSON.stringify({data, nextId, collapsedDays})); } catch(e){} }
+function load() {
+  try {
+    const s = localStorage.getItem('mes_taches');
+    if (s) { const p = JSON.parse(s); data = p.data; nextId = p.nextId; collapsedDays = p.collapsedDays||{}; }
+    else { seedData(); }
+  } catch(e) { seedData(); }
+}
+
+function seedData() {
+  data.day = [
+    { id: nextId++, text: 'Répondre aux emails', prio: 'high', done: true, showSub: false, subtasks: [{id:nextId++,text:'Email client',done:true}] },
+    { id: nextId++, text: 'Préparer la réunion', prio: 'medium', done: false, showSub: false, subtasks: [] },
+    { id: nextId++, text: 'Pause déjeuner', prio: 'low', done: true, showSub: false, subtasks: [] },
+  ];
+  data.week = [
+    { id: nextId++, text: 'Rapport mensuel', prio: 'high', done: true, day: 0, showSub: false, subtasks: [{id:nextId++,text:'Collecter les données',done:true}] },
+    { id: nextId++, text: 'Formation en ligne', prio: 'medium', done: false, day: 1, showSub: false, subtasks: [] },
+    { id: nextId++, text: 'Appel équipe', prio: 'medium', done: true, day: 2, showSub: false, subtasks: [] },
+    { id: nextId++, text: 'Réviser budget', prio: 'high', done: false, day: 3, showSub: false, subtasks: [] },
+    { id: nextId++, text: 'Envoyer CR réunion', prio: 'low', done: true, day: 4, showSub: false, subtasks: [] },
+  ];
+  save();
+}
+
+function switchTab(t) {
+  tab = t;
+  ['day','week','plan','stats'].forEach(id => document.getElementById('tab-'+id).classList.toggle('active', id===t));
+  render();
+}
+
+function prioLabel(p) { return p==='high'?'Haute':p==='medium'?'Moyenne':'Basse'; }
+function prioClass(p) { return 'prio-'+p; }
+function prioColor(p) { return p==='high'?'var(--high)':p==='medium'?'var(--med)':'var(--done-color)'; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ── PLANNING ── */
+let copyMenuCtx = null;
+
+function renderPlanning() {
+  let html = `<div class="plan-toolbar">
+    <div class="plan-toolbar-title">Glissez ou copiez les tâches entre les jours</div>
+    <div class="copy-hint">📋 Copier/Déplacer</div>
+  </div><div class="plan-grid">`;
+
+  DAYS_FULL.forEach((dayName, i) => {
+    const tasks = data.week.filter(t=>t.day===i);
+    const done = tasks.filter(t=>t.done).length;
+    const pct = tasks.length ? Math.round(done/tasks.length*100) : 0;
+    const collapsed = collapsedDays[i];
+
+    const taskItems = tasks.map(t => {
+      return `<div class="plan-task" id="ptask-${t.id}"
+        draggable="true"
+        ondragstart="onDragStart(event,${t.id},${i})"
+        ondragend="onDragEnd(event)">
+        <div class="plan-task-prio" style="background:${prioColor(t.prio)}"></div>
+        <div class="plan-task-name ${t.done?'done':''}">${esc(t.text)}</div>
+        <div class="plan-task-actions">
+          <button class="plan-icon-btn" onclick="togglePlanTask(${t.id})" title="${t.done?'Rouvrir':'Terminer'}">${t.done?'↩':'✓'}</button>
+          <button class="plan-icon-btn copy-btn" onclick="openCopyMenu(event,${t.id},${i})" title="Copier/Déplacer">⇄</button>
+          <button class="plan-icon-btn" onclick="deletePlanTask(${t.id})" title="Supprimer" style="color:var(--high)">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    const dropZone = `<div class="plan-drop-zone" id="drop-${i}"
+      ondragover="onDragOver(event,${i})"
+      ondragleave="onDragLeave(event,${i})"
+      ondrop="onDrop(event,${i},'move')">
+      + Déposer ici
+    </div>`;
+
+    html += `<div class="plan-day-col" id="pcol-${i}">
+      <div class="plan-day-head" onclick="toggleDayCollapse(${i})">
+        <div class="plan-day-name">${DAYS[i]} — ${dayName}</div>
+        <div class="plan-day-count">${tasks.length} tâche${tasks.length!==1?'s':''}</div>
+        ${tasks.length?`<div class="plan-day-pct">${pct}%</div>`:''}
+        <div style="color:var(--text3);font-size:12px">${collapsed?'▶':'▼'}</div>
+      </div>
+      <div class="plan-day-body ${collapsed?'collapsed':''}">
+        ${taskItems}
+        ${dropZone}
+      </div>
+    </div>`;
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function toggleDayCollapse(i) {
+  collapsedDays[i] = !collapsedDays[i];
+  save(); render();
+}
+
+function togglePlanTask(id) {
+  const t = data.week.find(t=>t.id===id); if(t) t.done=!t.done;
+  save(); render();
+}
+
+function deletePlanTask(id) {
+  data.week = data.week.filter(t=>t.id!==id);
+  save(); render();
+}
+
+/* Copy/Move menu */
+function openCopyMenu(e, taskId, fromDay) {
+  e.stopPropagation();
+  copyMenuCtx = { taskId, fromDay };
+  const menu = document.getElementById('copy-menu');
+  const otherDays = DAYS_FULL.map((d,i)=>({d,i})).filter(x=>x.i!==fromDay);
+
+  menu.innerHTML = `<div class="copy-menu-title">Copier vers...</div>
+    ${otherDays.map(x=>`<div class="copy-menu-item" onclick="copyTask(${taskId},${fromDay},${x.i},false)">📋 ${x.d}</div>`).join('')}
+    <div class="copy-menu-sep"></div>
+    <div class="copy-menu-title">Déplacer vers...</div>
+    ${otherDays.map(x=>`<div class="copy-menu-item move" onclick="copyTask(${taskId},${fromDay},${x.i},true)">→ ${x.d}</div>`).join('')}`;
+
+  const rect = e.target.getBoundingClientRect();
+  let left = rect.left;
+  let top = rect.bottom + 6;
+  if (left + 170 > window.innerWidth) left = window.innerWidth - 175;
+  if (top + 300 > window.innerHeight) top = rect.top - 310;
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+  menu.style.display = 'block';
+  document.getElementById('overlay').style.display = 'block';
+}
+
+function closeCopyMenu() {
+  document.getElementById('copy-menu').style.display = 'none';
+  document.getElementById('overlay').style.display = 'none';
+  copyMenuCtx = null;
+}
+
+function copyTask(taskId, fromDay, toDay, move) {
+  const src = data.week.find(t=>t.id===taskId);
+  if (!src) { closeCopyMenu(); return; }
+  if (move) {
+    src.day = toDay;
+  } else {
+    const clone = JSON.parse(JSON.stringify(src));
+    clone.id = nextId++;
+    clone.done = false;
+    clone.subtasks = clone.subtasks.map(s=>({...s, id: nextId++, done: false}));
+    clone.day = toDay;
+    data.week.push(clone);
+  }
+  closeCopyMenu();
+  save(); render();
+}
+
+/* Drag & drop */
+function onDragStart(e, taskId, fromDay) {
+  dragTaskId = taskId; dragFromDay = fromDay;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(()=>{ const el=document.getElementById('ptask-'+taskId); if(el) el.classList.add('dragging'); },0);
+}
+
+function onDragEnd(e) {
+  if (dragTaskId) { const el=document.getElementById('ptask-'+dragTaskId); if(el) el.classList.remove('dragging'); }
+  document.querySelectorAll('.plan-drop-zone').forEach(z=>z.classList.remove('active'));
+  document.querySelectorAll('.plan-day-col').forEach(c=>c.classList.remove('drag-over'));
+  dragTaskId = null; dragFromDay = null;
+}
+
+function onDragOver(e, toDay) {
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  document.getElementById('drop-'+toDay).classList.add('active');
+  document.getElementById('pcol-'+toDay).classList.add('drag-over');
+}
+
+function onDragLeave(e, toDay) {
+  document.getElementById('drop-'+toDay).classList.remove('active');
+  document.getElementById('pcol-'+toDay).classList.remove('drag-over');
+}
+
+function onDrop(e, toDay, action) {
+  e.preventDefault();
+  if (dragTaskId === null || dragFromDay === toDay) { onDragEnd(e); return; }
+  const src = data.week.find(t=>t.id===dragTaskId);
+  if (src) src.day = toDay;
+  onDragEnd(e);
+  save(); render();
+}
+
+/* ── STATS ── */
+function renderStats() {
+  const allTasks = [...data.day, ...data.week];
+  const total = allTasks.length;
+  const done = allTasks.filter(t=>t.done).length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  const dayTotal = data.day.length;
+  const dayDone = data.day.filter(t=>t.done).length;
+  const dayPct = dayTotal ? Math.round(dayDone/dayTotal*100) : 0;
+
+  const weekBars = DAYS.map((lbl, i) => {
+    const ts = data.week.filter(t=>t.day===i);
+    const d = ts.filter(t=>t.done).length;
+    return { lbl, d, tot: ts.length, pct: ts.length ? Math.round(d/ts.length*100) : 0 };
+  }).filter(b=>b.tot>0);
+  const maxBar = weekBars.length ? Math.max(...weekBars.map(b=>b.tot)) : 1;
+
+  const prioData = ['high','medium','low'].map(p => {
+    const ts = allTasks.filter(t=>t.prio===p);
+    const d = ts.filter(t=>t.done).length;
+    return { p, total: ts.length, done: d, pct: ts.length ? Math.round(d/ts.length*100) : 0 };
+  });
+
+  if (!total) return `<div class="empty"><div class="empty-icon">📊</div>Ajoutez des tâches pour voir les statistiques</div>`;
+
+  let html = `<div class="big-cards">
+    <div class="big-card"><div class="big-card-val green">${pct}%</div><div class="big-card-label">Global terminé</div></div>
+    <div class="big-card"><div class="big-card-val">${done}/${total}</div><div class="big-card-label">Tâches totales</div></div>
+    <div class="big-card"><div class="big-card-val green">${dayPct}%</div><div class="big-card-label">Aujourd'hui</div></div>
+    <div class="big-card"><div class="big-card-val">${dayDone}/${dayTotal}</div><div class="big-card-label">Tâches du jour</div></div>
+  </div>`;
+
+  if (weekBars.length) {
+    const bars = weekBars.map(b=>{
+      const dH=Math.round((b.d/maxBar)*100), tH=Math.round(((b.tot-b.d)/maxBar)*100);
+      return `<div class="bar-col">
+        <div class="bar-pct">${b.pct}%</div>
+        <div class="bar-wrap">
+          <div class="bar-done" style="height:${dH}%"></div>
+          <div class="bar-todo" style="height:${tH}%"></div>
+        </div>
+        <div class="bar-lbl">${b.lbl}</div>
+      </div>`;
+    }).join('');
+    html += `<div class="chart-card">
+      <div class="chart-title">Évolution par jour (semaine)</div>
+      <div class="bar-chart">${bars}</div>
+      <div style="display:flex;gap:16px;margin-top:10px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)"><div style="width:9px;height:9px;border-radius:2px;background:var(--done-color)"></div>Terminées</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)"><div style="width:9px;height:9px;border-radius:2px;background:var(--todo-color);opacity:.5"></div>Restantes</div>
+      </div>
+    </div>`;
+  }
+
+  const prioColors = {high:'var(--high)',medium:'var(--med)',low:'var(--done-color)'};
+  const prioNames = {high:'🔴 Haute',medium:'🟡 Moyenne',low:'🟢 Basse'};
+  const prioRows = prioData.filter(p=>p.total>0).map(p=>`
+    <div class="hbar-row">
+      <div class="hbar-head"><span>${prioNames[p.p]}</span><span>${p.done}/${p.total} — <b>${p.pct}%</b></span></div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${p.pct}%;background:${prioColors[p.p]}"></div></div>
+    </div>`).join('');
+  if (prioRows) html += `<div class="chart-card"><div class="chart-title">Par priorité</div>${prioRows}</div>`;
+
+  const r=44,cx=56,cy=56,circ=2*Math.PI*r,doneArc=circ*(done/total),todoArc=circ*(1-done/total);
+  html += `<div class="chart-card">
+    <div class="chart-title">Répartition globale</div>
+    <div class="donut-wrap">
+      <svg width="112" height="112" viewBox="0 0 112 112">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--todo-color)" stroke-width="14" opacity=".3"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--done-color)" stroke-width="14"
+          stroke-dasharray="${doneArc} ${todoArc}" stroke-dashoffset="${circ*.25}" stroke-linecap="round"/>
+        <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="18" font-weight="600" fill="var(--text)" font-family="DM Sans,sans-serif">${pct}%</text>
+      </svg>
+      <div class="donut-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--done-color)"></div>${done} terminées</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--todo-color);opacity:.5"></div>${total-done} restantes</div>
+      </div>
+    </div>
+  </div>`;
+  return html;
+}
+
+/* ── ADD BOX ── */
+function renderAddBox() {
+  if (tab === 'day') {
+    return `<div class="add-box">
+      <input class="add-input" id="main-input" type="text" placeholder="Nouvelle tâche..." onkeydown="if(event.key==='Enter')addTask()">
+      <div class="add-controls">
+        <select class="prio-select" id="prio-sel">
+          <option value="high">🔴 Haute</option>
+          <option value="medium" selected>🟡 Moyenne</option>
+          <option value="low">🟢 Basse</option>
+        </select>
+        <button class="add-btn" onclick="addTask()">Ajouter</button>
+      </div>
+    </div>`;
+  } else {
+    return `<div class="add-box">
+      <input class="add-input" id="main-input" type="text" placeholder="Nouvelle tâche..." onkeydown="if(event.key==='Enter')addTask()">
+      <div class="add-controls">
+        <select class="day-select" id="day-sel">${DAYS_FULL.map((d,i)=>`<option value="${i}">${d}</option>`).join('')}</select>
+        <select class="prio-select" id="prio-sel">
+          <option value="high">🔴 Haute</option>
+          <option value="medium" selected>🟡 Moyenne</option>
+          <option value="low">🟢 Basse</option>
+        </select>
+      </div>
+      <div class="add-controls" style="margin-top:8px">
+        <button class="add-btn" style="width:100%" onclick="addTask()">Ajouter</button>
+      </div>
+    </div>`;
+  }
+}
+
+/* ── TASK CARD ── */
+function renderTask(scope, t) {
+  const subDone = t.subtasks.filter(s=>s.done).length;
+  const subTotal = t.subtasks.length;
+  const subsHtml = t.subtasks.map(s=>`
+    <div class="sub-item">
+      <div class="sub-check ${s.done?'done':''}" onclick="toggleSub('${scope}',${t.id},${s.id})"><span class="sub-check-icon">✓</span></div>
+      <span class="sub-name ${s.done?'done':''}">${esc(s.text)}</span>
+      <button class="sub-del" onclick="delSub('${scope}',${t.id},${s.id})">×</button>
+    </div>`).join('');
+  return `<div class="task-card ${t.done?'done-card':''}" id="task-${t.id}">
+    <div class="task-row">
+      <button class="check-btn ${t.done?'done':''}" onclick="toggleTask('${scope}',${t.id})"><span class="check-icon">✓</span></button>
+      <div class="task-content">
+        <div class="task-name ${t.done?'done':''}">${esc(t.text)}</div>
+        <div class="task-meta">
+          <span class="prio-tag ${prioClass(t.prio)}">${prioLabel(t.prio)}</span>
+          ${subTotal>0?`<span class="sub-count">${subDone}/${subTotal} sous-tâches</span>`:''}
+        </div>
+      </div>
+      <div class="task-actions">
+        <button class="icon-btn" onclick="toggleSubArea('${scope}',${t.id})">＋</button>
+        <button class="icon-btn" onclick="deleteTask('${scope}',${t.id})">✕</button>
+      </div>
+    </div>
+    <div class="subtask-area ${t.showSub?'':'hidden'}">
+      ${subsHtml}
+      <div class="add-sub">
+        <input class="sub-input" id="sub-inp-${t.id}" type="text" placeholder="Ajouter une sous-tâche..." onkeydown="if(event.key==='Enter')addSub('${scope}',${t.id})">
+        <button class="sub-add-btn" onclick="addSub('${scope}',${t.id})">+</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── MAIN RENDER ── */
+function render() {
+  const now = new Date();
+  document.getElementById('date-str').textContent = now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+  const all = [...data.day,...data.week];
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-pill"><b>${all.length}</b> total</div>
+    <div class="stat-pill"><b>${all.filter(t=>t.done).length}</b> terminées</div>`;
+
+  let html = '';
+  if (tab === 'stats') {
+    html = renderStats();
+  } else if (tab === 'plan') {
+    html = renderPlanning();
+  } else if (tab === 'day') {
+    html += renderAddBox();
+    if (!data.day.length) html += `<div class="empty"><div class="empty-icon">🎉</div>Aucune tâche aujourd'hui !</div>`;
+    else html += data.day.map(t=>renderTask('day',t)).join('');
+  } else {
+    html += renderAddBox();
+    let hasAny = false;
+    DAYS_FULL.forEach((day, i) => {
+      const ts = data.week.filter(t=>t.day===i);
+      if (!ts.length) return;
+      hasAny = true;
+      html += `<div class="day-section"><div class="day-header">${day}</div>${ts.map(t=>renderTask('week',t)).join('')}</div>`;
+    });
+    if (!hasAny) html += `<div class="empty"><div class="empty-icon">🎉</div>Aucune tâche cette semaine !</div>`;
+  }
+  document.getElementById('scroll-area').innerHTML = html;
+}
+
+/* ── ACTIONS ── */
+function addTask() {
+  const inp = document.getElementById('main-input');
+  const text = inp.value.trim(); if (!text) return;
+  const prio = document.getElementById('prio-sel').value;
+  const task = { id: nextId++, text, prio, done: false, showSub: false, subtasks: [] };
+  if (tab === 'week') task.day = parseInt(document.getElementById('day-sel').value);
+  data[tab].push(task);
+  save(); render();
+  setTimeout(()=>{ const i=document.getElementById('main-input'); if(i)i.focus(); },50);
+}
+
+function toggleTask(scope, id) { const t=data[scope].find(t=>t.id===id); if(t) t.done=!t.done; save(); render(); }
+function deleteTask(scope, id) { data[scope]=data[scope].filter(t=>t.id!==id); save(); render(); }
+function toggleSubArea(scope, id) { const t=data[scope].find(t=>t.id===id); if(t) t.showSub=!t.showSub; save(); render(); setTimeout(()=>{ const i=document.getElementById('sub-inp-'+id); if(i)i.focus(); },50); }
+function addSub(scope, id) { const inp=document.getElementById('sub-inp-'+id); const text=inp.value.trim(); if(!text) return; const t=data[scope].find(t=>t.id===id); if(t) t.subtasks.push({id:nextId++,text,done:false}); save(); render(); setTimeout(()=>{ const i=document.getElementById('sub-inp-'+id); if(i)i.focus(); },50); }
+function toggleSub(scope, tid, sid) { const t=data[scope].find(t=>t.id===tid); if(t){ const s=t.subtasks.find(s=>s.id===sid); if(s) s.done=!s.done; } save(); render(); }
+function delSub(scope, tid, sid) { const t=data[scope].find(t=>t.id===tid); if(t) t.subtasks=t.subtasks.filter(s=>s.id!==sid); save(); render(); }
+
+load(); render();
+</script>
+</body>
+</html>
